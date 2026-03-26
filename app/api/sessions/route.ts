@@ -1,11 +1,13 @@
 export async function GET() {
-  return Response.json({
-    sessions: []
-  });
+  return new Response(
+    JSON.stringify({ sessions: [] }),
+    { status: 200 }
+  );
 }
 
 export async function POST() {
-  return Response.json({
-    success: true
-  });
+  return new Response(
+    JSON.stringify({ success: true }),
+    { status: 200 }
+  );
 }
