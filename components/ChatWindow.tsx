@@ -208,7 +208,10 @@ export default function ChatWindow() {
       if (!sessionId) {
         const title = content.slice(0, 40) + (content.length > 40 ? "…" : "");
         const session = await apiCreateSession(title);
-        if (!session) return;
+        if (!session) {
+          alert("Error: Failed to create a new session. Please check your network or server logs.");
+          return;
+        }
         setSessions((prev) => [session, ...prev]);
         setActiveSessionId(session.id);
         sessionId = session.id;
