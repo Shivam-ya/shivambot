@@ -74,7 +74,6 @@ async function apiSaveMessage(msg: {
 const WELCOME_MESSAGES = [
   "Ask me anything — I'm powered by the best open models.",
   "What shall we explore today?",
-  "No gravity. No limits. Ask away.",
   "Your AI mission control is ready.",
 ];
 
@@ -96,6 +95,7 @@ export default function ChatWindow() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [placeholder, setPlaceholder] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
 
   // Set random placeholder client-side only (avoids SSR hydration mismatch)
   useEffect(() => {
@@ -109,6 +109,21 @@ export default function ChatWindow() {
   // Load sessions from SQLite on mount
   useEffect(() => {
     apiGetSessions().then(setSessions);
+  }, []);
+
+  // Poll server health
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const res = await fetch("/api/health");
+        setIsOnline(res.ok);
+      } catch (e) {
+        setIsOnline(false);
+      }
+    };
+    checkHealth();
+    const interval = setInterval(checkHealth, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   // Auto-scroll
@@ -353,7 +368,12 @@ export default function ChatWindow() {
             <Menu className="w-4 h-4" />
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Zap className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+            <div
+              className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors ${
+                isOnline ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+              }`}
+              title={isOnline ? "Server Online" : "Server Offline"}
+            />
             <h1 className="text-sm font-semibold text-white truncate">
               {Array.isArray(sessions) ? sessions.find((s) => s.id === activeSessionId)?.title ?? "New Conversation" : "New Conversation"}
             </h1>

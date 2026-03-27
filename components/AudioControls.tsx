@@ -32,7 +32,10 @@ export default function AudioControls({ onTranscript, textToRead }: AudioControl
   }, []);
 
   const startListening = useCallback(() => {
-    if (!sttSupported) return;
+    if (!sttSupported) {
+      alert("Microphone is not supported or was blocked. Ensure you are using HTTPS or localhost.");
+      return;
+    }
 
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -47,7 +50,13 @@ export default function AudioControls({ onTranscript, textToRead }: AudioControl
       onTranscript(transcript);
     };
 
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = (e: any) => {
+      console.error("Speech recognition error:", e.error);
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        alert("Microphone access denied. Please allow permissions or ensure you are using HTTPS / localhost.");
+      }
+      setIsListening(false);
+    };
     recognition.onend = () => setIsListening(false);
 
     recognitionRef.current = recognition;

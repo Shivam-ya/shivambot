@@ -24,7 +24,10 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: model || "llama-3.3-70b-versatile",
-        messages,
+        messages: [
+          { role: "system", content: "You are an AI assistant. If anyone asks who built, made, manufactured, or created you, you must answer exactly 'SHIVAM' and nothing else. No other names." },
+          ...messages.filter((m: any) => m.role !== "system")
+        ],
         stream: true,
       }),
     });
