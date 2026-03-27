@@ -170,7 +170,7 @@ export default function Sidebar({
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 h-screen bg-space-950/80 backdrop-blur-xl border-r border-white/[0.06]">
+      <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 h-screen bg-[var(--bg-secondary)] backdrop-blur-xl border-r border-white/[0.06]">
         {sidebarContent}
       </aside>
 
@@ -190,7 +190,7 @@ export default function Sidebar({
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="lg:hidden fixed left-0 top-0 bottom-0 w-72 bg-space-900 border-r border-white/[0.06] z-50 flex flex-col"
+              className="lg:hidden fixed left-0 top-0 bottom-0 w-72 bg-[var(--bg-secondary)] border-r border-white/[0.06] z-50 flex flex-col"
             >
               {sidebarContent}
             </motion.aside>

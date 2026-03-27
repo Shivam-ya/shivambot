@@ -459,7 +459,7 @@ export default function ChatWindow() {
                 <button 
                   type="button" 
                   onClick={() => setSelectedImage(null)} 
-                  className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1.5 shadow-md hover:bg-red-500 transition-colors"
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-md hover:bg-red-600 transition-colors z-10"
                 >
                   <X className="w-3 h-3"/>
                 </button>
@@ -510,7 +510,7 @@ export default function ChatWindow() {
               ) : (
                 <motion.button
                   type="submit"
-                  disabled={!input.trim() || isLoading}
+                  disabled={(!input.trim() && !selectedImage) || isLoading}
                   whileTap={{ scale: 0.95 }}
                   className="w-10 h-10 rounded-xl bg-cyan-500 hover:bg-cyan-600 dark:bg-cyan-500 dark:hover:bg-cyan-400 text-white dark:text-space-950 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-all m-auto"
                   aria-label="Send message"
