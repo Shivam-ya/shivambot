@@ -11,6 +11,7 @@ import {
   User,
   Bot,
   Pencil,
+  Loader2,
 } from "lucide-react";
 import ThinkingBlock from "./ThinkingBlock";
 import AudioControls from "./AudioControls";
@@ -28,6 +29,8 @@ export interface Message {
   thinking?: string;
   model?: string;
   createdAt?: Date;
+  imageUrl?: string;
+  isLoadingImage?: boolean;
 }
 
 interface MessageBubbleProps {
@@ -73,6 +76,10 @@ function getCodeText(node: any): string {
 function CodeCopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = useCallback(() => {
+    if (!navigator?.clipboard?.writeText) {
+      alert("Clipboard API is disabled by your browser over non-secure HTTP networks. Please copy the text manually.");
+      return;
+    }
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -98,6 +105,10 @@ export default function MessageBubble({ message, isStreaming = false, onDelete, 
   const isUser = message.role === "user";
 
   const copyToClipboard = useCallback(async () => {
+    if (!navigator?.clipboard?.writeText) {
+      alert("Clipboard API is disabled by your browser over non-secure HTTP networks. Please copy the text manually.");
+      return;
+    }
     await navigator.clipboard.writeText(text || message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -185,6 +196,26 @@ export default function MessageBubble({ message, isStreaming = false, onDelete, 
             )
           ) : (
             <div className="prose-ag text-slate-200 text-sm transition-all duration-300 ease-out min-w-0 break-words">
+              {message.isLoadingImage && (
+                <div className="flex items-center gap-2 text-cyan-400 mb-3 bg-cyan-950/30 p-3 rounded-xl border border-cyan-500/20 w-fit">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm font-medium">Generating image...</span>
+                </div>
+              )}
+              {message.imageUrl && (
+                <div className="mb-4">
+                  <img src={message.imageUrl} alt="Generated using AI" className="rounded-xl border border-white/10 shadow-lg max-w-full h-auto object-cover max-h-[500px]" />
+                  <a
+                    href={message.imageUrl}
+                    download={`generated-${message.id}.jpg`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-sm transition-all shadow-sm"
+                  >
+                    <Download className="w-4 h-4" /> Download Image
+                  </a>
+                </div>
+              )}
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkMath]}
                 rehypePlugins={[rehypeKatex]}

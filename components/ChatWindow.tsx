@@ -91,9 +91,10 @@ export default function ChatWindow() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(
-    process.env.NEXT_PUBLIC_DEFAULT_MODEL ?? "llama-3.3-70b-versatile"
-  );
+  const [selectedModel, setSelectedModel] = useState(() => {
+    const envModel = process.env.NEXT_PUBLIC_DEFAULT_MODEL;
+    return (envModel && !envModel.includes('/')) ? envModel : "llama-3.3-70b-versatile";
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [placeholder, setPlaceholder] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -126,6 +127,16 @@ export default function ChatWindow() {
     checkHealth();
     const interval = setInterval(checkHealth, 10000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Lazy load Puter.js safely without duplication
+  useEffect(() => {
+    if (document.getElementById("puter-js") || (window as any).puter) return;
+    const script = document.createElement("script");
+    script.id = "puter-js";
+    script.src = "https://js.puter.com/v2/";
+    script.async = true;
+    document.body.appendChild(script);
   }, []);
 
   // Auto-scroll
@@ -210,6 +221,86 @@ export default function ChatWindow() {
 
   const sendMessage = useCallback(
     async (content: string) => {
+      const finalContent = content.trim();
+      const lowerContent = finalContent.toLowerCase();
+
+      const triggers = ["/image", "generate image", "create image", "image"];
+      const matchedTrigger = triggers.find(t => lowerContent.startsWith(t));
+
+      if (matchedTrigger) {
+        let imagePrompt = finalContent.substring(matchedTrigger.length).trim();
+        if (imagePrompt.toLowerCase().startsWith("of ")) {
+          imagePrompt = imagePrompt.substring(3).trim();
+        }
+        
+        const userMsg: Message = {
+          id: mkId(),
+          role: "user",
+          content: finalContent,
+          createdAt: new Date(),
+        };
+        const assistantId = mkId();
+        if (!imagePrompt) {
+          const userMsgEmpty: Message = { id: mkId(), role: "user", content: finalContent, createdAt: new Date() };
+          const assistantMsgEmpty: Message = { id: mkId(), role: "assistant", content: "Please provide a valid prompt", model: "FLUX.1 Schnell", createdAt: new Date() };
+          setMessages((prev) => [...prev, userMsgEmpty, assistantMsgEmpty]);
+          setInput("");
+          if (textareaRef.current) textareaRef.current.style.height = "auto";
+          return;
+        }
+
+        const assistantMsg: Message = {
+          id: assistantId,
+          role: "assistant",
+          content: "Generating image...",
+          model: "FLUX.1 Schnell",
+          createdAt: new Date(),
+          isLoadingImage: true,
+        };
+        
+        setMessages((prev) => [...prev, userMsg, assistantMsg]);
+        setInput("");
+        setSelectedImage(null);
+        if (textareaRef.current) textareaRef.current.style.height = "auto";
+        setIsLoading(true);
+
+        try {
+          const response = await fetch("/api/image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: imagePrompt }),
+          });
+
+          if (!response.ok) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, isLoadingImage: false, content: "Unable to generate image" } : m
+              )
+            );
+            setIsLoading(false);
+            return;
+          }
+
+          const blob = await response.blob();
+          const imageUrl = URL.createObjectURL(blob);
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, isLoadingImage: false, content: "", imageUrl: imageUrl } : m
+            )
+          );
+        } catch (error) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, isLoadingImage: false, content: "Image generation failed" } : m
+            )
+          );
+        } finally {
+          setIsLoading(false);
+        }
+        return;
+      }
+
       if ((!content.trim() && !selectedImage) || isLoading) return;
 
       // Create a session if none is active
@@ -218,23 +309,27 @@ export default function ChatWindow() {
         const title = content.slice(0, 40) + (content.length > 40 ? "…" : "");
         const session = await apiCreateSession(title);
         if (!session) {
-          alert("Error: Failed to create a new session. Please check your network or server logs.");
-          return;
+          // Fallback to local offline session memory if Supabase is disconnected (.env.local missing credentials)
+          console.warn("Using offline local session fallback (database connection failed).");
+          sessionId = "offline-session-" + Date.now();
+          setSessions((prev) => [{ id: sessionId, title: "Offline Session", created_at: new Date() } as unknown as ChatSession, ...prev]);
+          setActiveSessionId(sessionId);
+        } else {
+          setSessions((prev) => [session, ...prev]);
+          setActiveSessionId(session.id);
+          sessionId = session.id;
         }
-        setSessions((prev) => [session, ...prev]);
-        setActiveSessionId(session.id);
-        sessionId = session.id;
       }
 
-      let finalContent = content.trim();
+      let contentToSave = content.trim();
       if (selectedImage) {
-        finalContent = `![Attached Image](${selectedImage})\n\n${finalContent}`;
+        contentToSave = `![Attached Image](${selectedImage})\n\n${contentToSave}`;
       }
 
       const userMsg: Message = {
         id: mkId(),
         role: "user",
-        content: finalContent,
+        content: contentToSave,
         createdAt: new Date(),
       };
 
@@ -244,7 +339,7 @@ export default function ChatWindow() {
       if (textareaRef.current) textareaRef.current.style.height = "auto";
 
       // Persist user message and update local state with DB ID
-      apiSaveMessage({ session_id: sessionId, role: "user", content: finalContent }).then((savedMsg) => {
+      apiSaveMessage({ session_id: sessionId, role: "user", content: contentToSave }).then((savedMsg) => {
         if (savedMsg?.id) {
           setMessages((current) => current.map((m) => m.id === userMsg.id ? { ...m, id: savedMsg.id, createdAt: new Date(savedMsg.created_at) } : m));
         }

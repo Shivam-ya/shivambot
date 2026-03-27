@@ -9,13 +9,25 @@ export async function POST(req: Request) {
     }
 
     const { model, messages } = await req.json();
-    const apiKey = process.env.GROQ_API_KEY;
-
-    if (!apiKey) {
-      return NextResponse.json({ error: "Groq API Key missing. Please add GROQ_API_KEY in Vercel." }, { status: 500 });
-    }
 
     let targetModel = model || "llama-3.3-70b-versatile";
+    let apiUrl = "https://api.groq.com/openai/v1/chat/completions";
+    let apiAuthKey = process.env.GROQ_API_KEY;
+
+    if (targetModel === "gemma2-9b-it") {
+       targetModel = "google/gemma-2-9b-it";
+       apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+       apiAuthKey = process.env.OPENROUTER_API_KEY;
+    } else if (targetModel === "mixtral-8x7b-32768") {
+       targetModel = "mistralai/mixtral-8x7b-instruct";
+       apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+       apiAuthKey = process.env.OPENROUTER_API_KEY;
+    }
+
+    if (!apiAuthKey) {
+      return NextResponse.json({ error: "API Key missing for the selected model provider." }, { status: 500 });
+    }
+
     let hasImage = false;
 
     // Process messages to handle base64 markdown images
@@ -41,13 +53,15 @@ export async function POST(req: Request) {
 
     if (hasImage && !targetModel.includes("vision")) {
       targetModel = "llama-3.2-11b-vision-preview"; // Auto-switch to Groq's vision model
+      apiUrl = "https://api.groq.com/openai/v1/chat/completions";
+      apiAuthKey = process.env.GROQ_API_KEY;
     }
 
-    // Use Groq API (OpenAI compatible)
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    // Call the respective provider (OpenAI compatible)
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        "Authorization": `Bearer ${apiAuthKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
