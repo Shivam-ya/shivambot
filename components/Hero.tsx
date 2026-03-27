@@ -234,9 +234,9 @@ export default function Hero() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.15 }}
-            className="text-4xl sm:text-7xl lg:text-9xl font-black leading-tight tracking-tighter select-none break-words"
+            className="text-4xl sm:text-7xl lg:text-8xl font-black leading-tight tracking-tighter select-none"
           >
-            <span className="relative inline-block w-full">
+            <span className="relative flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 w-full">
               {/* Glow layer */}
               <span
                 className="absolute inset-0 blur-2xl opacity-40 bg-gradient-to-r from-cyan-400 to-purple-500 select-none"
@@ -244,10 +244,10 @@ export default function Hero() {
               >
                 SHIVAM'S Chatbot
               </span>
-              <span className="relative bg-gradient-to-br from-white via-slate-200 to-slate-400 bg-clip-text text-transparent sm:pr-2 block sm:inline">
+              <span className="relative bg-gradient-to-br from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                 SHIVAM'S
               </span>
-              <span className="relative bg-gradient-to-br from-cyan-300 via-cyan-400 to-purple-500 bg-clip-text text-transparent block sm:inline">
+              <span className="relative bg-gradient-to-br from-cyan-300 via-cyan-400 to-purple-500 bg-clip-text text-transparent">
                 Chatbot
               </span>
             </span>
