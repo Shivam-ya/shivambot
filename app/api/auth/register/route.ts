@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { createUser, getUserByEmail } from "@/lib/db";
+import { createUser, getUserByEmail } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
@@ -14,13 +14,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Password must be at least 4 characters long" }, { status: 400 });
     }
 
-    const existingUser = getUserByEmail(email);
+    const existingUser = await getUserByEmail(email);
     if (existingUser) {
       return NextResponse.json({ error: "User already exists" }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = createUser(email, hashedPassword);
+    const user = await createUser(email, hashedPassword);
+    if (!user) {
+      return NextResponse.json({ error: "Failed to create user in Supabase" }, { status: 500 });
+    }
 
     return NextResponse.json({ user: { id: user.id, email: user.email } }, { status: 201 });
   } catch (error) {

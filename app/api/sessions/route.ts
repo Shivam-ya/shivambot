@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
-import { createSession, getSessions } from "@/lib/db";
+import { createSession, getSessions } from "@/lib/supabase";
 
 export async function GET() {
   const session = await getServerSession();
@@ -8,7 +8,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const sessions = getSessions(session.user.id);
+  const sessions = await getSessions(session.user.id);
   return NextResponse.json(sessions);
 }
 
@@ -19,6 +19,6 @@ export async function POST(req: Request) {
   }
 
   const { title } = await req.json();
-  const newSession = createSession(session.user.id, title || "New Chat");
+  const newSession = await createSession(session.user.id, title || "New Chat");
   return NextResponse.json(newSession);
 }

@@ -1,7 +1,7 @@
 import { NextAuthOptions, getServerSession as nextGetServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import db, { getUserByEmail } from "./db";
+import { getUserByEmail } from "./supabase";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -20,7 +20,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Missing email or password");
         }
         
-        const user = getUserByEmail(credentials.email);
+        const user = await getUserByEmail(credentials.email);
         if (!user) {
           throw new Error("No user found with that email");
         }
