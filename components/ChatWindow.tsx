@@ -147,8 +147,7 @@ export default function ChatWindow() {
   }, []);
 
   const handleNewSession = useCallback(async () => {
-    const now = new Date();
-    const title = `Chat ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    const title = "SHIVAM Chatbot";
     const session = await apiCreateSession(title);
     if (!session) return;
     setSessions((prev) => [session, ...prev]);

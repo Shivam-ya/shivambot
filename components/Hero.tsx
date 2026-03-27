@@ -228,15 +228,15 @@ export default function Hero() {
         {/* Headline */}
         <motion.div
           style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-          className="mb-4 will-change-transform"
+          className="mb-4 will-change-transform w-full"
         >
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.15 }}
-            className="text-6xl sm:text-8xl lg:text-9xl font-black leading-none tracking-tighter select-none"
+            className="text-4xl sm:text-7xl lg:text-9xl font-black leading-tight tracking-tighter select-none break-words"
           >
-            <span className="relative inline-block">
+            <span className="relative inline-block w-full">
               {/* Glow layer */}
               <span
                 className="absolute inset-0 blur-2xl opacity-40 bg-gradient-to-r from-cyan-400 to-purple-500 select-none"
@@ -244,10 +244,10 @@ export default function Hero() {
               >
                 SHIVAM'S Chatbot
               </span>
-              <span className="relative bg-gradient-to-br from-white via-slate-200 to-slate-400 bg-clip-text text-transparent pr-2">
+              <span className="relative bg-gradient-to-br from-white via-slate-200 to-slate-400 bg-clip-text text-transparent sm:pr-2 block sm:inline">
                 SHIVAM'S
               </span>
-              <span className="relative bg-gradient-to-br from-cyan-300 via-cyan-400 to-purple-500 bg-clip-text text-transparent">
+              <span className="relative bg-gradient-to-br from-cyan-300 via-cyan-400 to-purple-500 bg-clip-text text-transparent block sm:inline">
                 Chatbot
               </span>
             </span>

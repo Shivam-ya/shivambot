@@ -58,6 +58,35 @@ function preProcessMarkdown(text: string): string {
 
 
 
+function getCodeText(node: any): string {
+  if (!node || !node.children) return "";
+  let text = "";
+  for (const child of node.children) {
+    if (child.type === "text") text += child.value;
+    else text += getCodeText(child);
+  }
+  return text;
+}
+
+function CodeCopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [text]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="p-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-cyan-400 transition-colors ml-2"
+      title="Copy snippet"
+    >
+      {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+    </button>
+  );
+}
+
 export default function MessageBubble({ message, isStreaming = false, onDelete }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const { thinking, text } = parseContent(message.content);
@@ -110,7 +139,7 @@ export default function MessageBubble({ message, isStreaming = false, onDelete }
 
         {/* Message content */}
         <div
-          className={`rounded-2xl px-4 py-3 relative overflow-hidden ${
+          className={`rounded-2xl px-4 py-3 relative overflow-x-auto ${
             isUser
               ? "bg-gradient-to-br from-cyan-600/30 to-blue-700/20 border border-cyan-500/20 rounded-tr-sm"
               : "glass-card border border-white/08 rounded-tl-sm w-full"
@@ -119,21 +148,32 @@ export default function MessageBubble({ message, isStreaming = false, onDelete }
           {isUser ? (
             <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{text || message.content}</p>
           ) : (
-            <div className="prose-ag text-slate-200 text-sm transition-all duration-300 ease-out">
+            <div className="prose-ag text-slate-200 text-sm transition-all duration-300 ease-out min-w-0 break-words">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkMath]}
                 rehypePlugins={[rehypeKatex]}
                 components={{
-                  pre({ node, ...props }) {
+                  table({ node, ...props }) {
                     return (
-                      <div className="relative my-4 rounded-xl overflow-hidden bg-[#0d1117] border border-black/20 dark:border-white/10 shadow-xl">
-                        <div className="flex items-center px-4 py-2 bg-white/5 border-b border-white/5">
-                          <div className="flex gap-1.5 mr-4">
+                      <div className="w-full overflow-x-auto my-4 custom-scrollbar">
+                        <table className="w-full min-w-[300px] text-left border-collapse" {...props} />
+                      </div>
+                    );
+                  },
+                  pre({ node, ...props }) {
+                    const codeText = getCodeText(node);
+                    return (
+                      <div className="relative my-4 rounded-xl overflow-hidden bg-[#0d1117] border border-black/20 dark:border-white/10 shadow-xl w-full">
+                        <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/5">
+                          <div className="flex gap-1.5 mr-4 w-16">
                             <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                             <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
                             <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
                           </div>
-                          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Snippet</span>
+                          <div className="flex items-center">
+                            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Snippet</span>
+                            <CodeCopyButton text={codeText} />
+                          </div>
                         </div>
                         <pre className="p-4 overflow-x-auto text-[13px] leading-relaxed select-text font-mono custom-scrollbar !text-slate-200 !whitespace-pre" {...props} />
                       </div>
