@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
-import { getMessages, deleteSession } from "@/lib/supabase";
+import { getMessages, deleteSession } from "@/lib/db";
 
 export async function GET(
   req: Request,

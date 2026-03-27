@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
-import { createSession, getSessions } from "@/lib/supabase";
+import { createSession, getSessions } from "@/lib/db";
 
 export async function GET() {
   const session = await getServerSession();

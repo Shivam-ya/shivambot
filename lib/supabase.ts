@@ -33,13 +33,16 @@ export interface ChatMessage {
 // ── Database helpers ────────────────────────────────────────────────────────
 
 // -- Users --
-export async function createUser(email: string, passwordHash: string): Promise<User | null> {
+export async function createUser(email: string, passwordHash: string): Promise<User> {
   const { data, error } = await supabase
     .from("users")
     .insert({ email, password_hash: passwordHash })
     .select()
     .single();
-  if (error) { console.error("createUser:", error); return null; }
+  if (error) { 
+    console.error("createUser error:", error); 
+    throw new Error(error.message); 
+  }
   return data;
 }
 
