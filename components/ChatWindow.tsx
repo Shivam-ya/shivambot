@@ -24,7 +24,8 @@ import type { ChatSession } from "@/lib/db";
 async function apiGetSessions(): Promise<ChatSession[]> {
   const res = await fetch("/api/sessions");
   if (!res.ok) return [];
-  return res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data : (data.sessions || []);
 }
 
 async function apiCreateSession(title: string): Promise<ChatSession | null> {
@@ -354,7 +355,7 @@ export default function ChatWindow() {
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <Zap className="w-4 h-4 text-cyan-400 flex-shrink-0" />
             <h1 className="text-sm font-semibold text-white truncate">
-              {sessions.find((s) => s.id === activeSessionId)?.title ?? "New Conversation"}
+              {Array.isArray(sessions) ? sessions.find((s) => s.id === activeSessionId)?.title ?? "New Conversation" : "New Conversation"}
             </h1>
           </div>
           {messages.length > 0 && (

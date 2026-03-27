@@ -32,6 +32,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <body
         className={`${inter.variable} ${GeistMono.variable} font-sans antialiased`}
+        suppressHydrationWarning
       >
         <AuthProvider>
           <ThemeProvider
