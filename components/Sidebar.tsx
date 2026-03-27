@@ -17,11 +17,10 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 
 const MODELS = [
-  { id: "nousresearch/hermes-3-llama-3.1-405b:free", label: "Hermes 405B (Best/Largest)" },
-  { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B (Great All-Rounder)" },
-  { id: "qwen/qwen3-next-80b-a3b-instruct:free", label: "Qwen 3 80B (Top Coding)" },
-  { id: "google/gemma-2-9b-it:free", label: "Gemma 2 9B (Fast & Reliable)" },
-  { id: "meta-llama/llama-3.1-8b-instruct:free", label: "Llama 3.1 8B (Fast & Reliable)" },
+  { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B (Versatile/Best)" },
+  { id: "llama-3.1-8b-instant", label: "Llama 3.1 8B (Fast)" },
+  { id: "mixtral-8x7b-32768", label: "Mixtral 8x7B (Great All-Rounder)" },
+  { id: "gemma2-9b-it", label: "Gemma 2 9B (Google)" },
 ] as const;
 
 interface SidebarProps {

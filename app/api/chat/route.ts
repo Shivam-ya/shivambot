@@ -9,14 +9,14 @@ export async function POST(req: Request) {
     }
 
     const { model, messages } = await req.json();
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ error: "OpenRouter API Key missing. Please add OPENROUTER_API_KEY in Vercel." }, { status: 500 });
+      return NextResponse.json({ error: "Groq API Key missing. Please add GROQ_API_KEY in Vercel." }, { status: 500 });
     }
 
-    // Use OpenRouter API
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    // Use Groq API (OpenAI compatible)
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
