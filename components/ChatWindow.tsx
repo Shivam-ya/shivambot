@@ -274,13 +274,17 @@ export default function ChatWindow() {
 
         const reader = response.body!.getReader();
         const decoder = new TextDecoder();
+        let buffer = "";
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
+          buffer += decoder.decode(value, { stream: true });
 
-          for (const line of chunk.split("\n")) {
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
             if (line.startsWith("data: ")) {
               const data = line.slice(6).trim();
               if (data === "[DONE]") continue;

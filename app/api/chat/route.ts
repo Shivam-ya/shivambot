@@ -42,12 +42,17 @@ export async function POST(req: Request) {
         const reader = response.body!.getReader();
         const decoder = new TextDecoder();
 
+        let buffer = "";
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value);
+          // Decode with { stream: true } to handle split multibyte characters
+          buffer += decoder.decode(value, { stream: true });
           
-          const lines = chunk.split("\n");
+          const lines = buffer.split("\n");
+          // The last element is inherently the incomplete portion of the stream
+          buffer = lines.pop() || "";
+
           for (const line of lines) {
             const trimmed = line.trim();
             if (trimmed.startsWith("data: ")) {
