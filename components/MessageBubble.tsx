@@ -99,7 +99,7 @@ export default function MessageBubble({ message, isStreaming = false, onDelete }
       </div>
 
       {/* Bubble */}
-      <div className={`max-w-[80%] sm:max-w-[70%] ${isUser ? "items-end" : "items-start"} flex flex-col`}>
+      <div className={`max-w-[85%] sm:max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col min-w-0`}>
         {/* Thinking block (assistant only) */}
         {!isUser && (thinking || (isStreaming && message.content.startsWith("<think>"))) && (
           <ThinkingBlock
@@ -110,10 +110,10 @@ export default function MessageBubble({ message, isStreaming = false, onDelete }
 
         {/* Message content */}
         <div
-          className={`rounded-2xl px-4 py-3 relative ${
+          className={`rounded-2xl px-4 py-3 relative overflow-hidden ${
             isUser
               ? "bg-gradient-to-br from-cyan-600/30 to-blue-700/20 border border-cyan-500/20 rounded-tr-sm"
-              : "glass-card border border-white/08 rounded-tl-sm"
+              : "glass-card border border-white/08 rounded-tl-sm w-full"
           }`}
         >
           {isUser ? (
