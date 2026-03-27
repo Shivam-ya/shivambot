@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
-import { saveMessage } from "@/lib/db";
+import { saveMessage } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   const session = await getServerSession();

@@ -1,7 +1,7 @@
 import { NextAuthOptions, getServerSession as nextGetServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { getUserByEmail } from "./db";
+import { getUserByEmail } from "./supabase";
 
 export const authOptions: NextAuthOptions = {
   session: {

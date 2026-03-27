@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { createUser, getUserByEmail } from "@/lib/db";
+import { createUser, getUserByEmail } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
