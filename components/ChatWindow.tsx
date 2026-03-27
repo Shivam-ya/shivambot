@@ -90,7 +90,7 @@ export default function ChatWindow() {
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [selectedModel, setSelectedModel] = useState(
-    process.env.NEXT_PUBLIC_DEFAULT_MODEL ?? "openai/gpt-5.2"
+    process.env.NEXT_PUBLIC_DEFAULT_MODEL ?? "llama-3.3-70b-versatile"
   );
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [placeholder, setPlaceholder] = useState("");
