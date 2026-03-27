@@ -61,12 +61,14 @@ async function apiSaveMessage(msg: {
   role: "user" | "assistant";
   content: string;
   model?: string;
-}): Promise<void> {
-  await fetch("/api/messages", {
+}): Promise<any> {
+  const res = await fetch("/api/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(msg),
   });
+  if (!res.ok) return null;
+  return res.json();
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -128,8 +130,8 @@ export default function ChatWindow() {
 
   // Auto-scroll
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    bottomRef.current?.scrollIntoView({ behavior: isStreaming ? "auto" : "smooth" });
+  }, [messages, isStreaming]);
 
   // Auto-resize textarea
   const resizeTextarea = useCallback(() => {
@@ -167,6 +169,14 @@ export default function ChatWindow() {
     },
     [activeSessionId]
   );
+
+  const handleClearAllSessions = useCallback(async () => {
+    if (!confirm("Are you sure you want to permanently delete all chat history? This action cannot be undone.")) return;
+    await fetch("/api/sessions/clear-all", { method: "DELETE" });
+    setSessions([]);
+    setActiveSessionId(null);
+    setMessages([]);
+  }, []);
 
   const handleDeleteMessage = useCallback((id: string) => {
     setMessages((prev) => prev.filter((m) => m.id !== id));
@@ -233,8 +243,12 @@ export default function ChatWindow() {
       setSelectedImage(null);
       if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-      // Persist user message
-      apiSaveMessage({ session_id: sessionId, role: "user", content: finalContent });
+      // Persist user message and update local state with DB ID
+      apiSaveMessage({ session_id: sessionId, role: "user", content: finalContent }).then((savedMsg) => {
+        if (savedMsg?.id) {
+          setMessages((current) => current.map((m) => m.id === userMsg.id ? { ...m, id: savedMsg.id, createdAt: new Date(savedMsg.created_at) } : m));
+        }
+      });
 
       setIsLoading(true);
 
@@ -302,13 +316,17 @@ export default function ChatWindow() {
           }
         }
 
-        // Persist completed assistant message
+        // Persist completed assistant message and update local state with DB ID
         if (fullResponse) {
           apiSaveMessage({
             session_id: sessionId,
             role: "assistant",
             content: fullResponse,
             model: selectedModel,
+          }).then((savedMsg) => {
+            if (savedMsg?.id) {
+              setMessages((current) => current.map((m) => m.id === assistantId ? { ...m, id: savedMsg.id, createdAt: new Date(savedMsg.created_at) } : m));
+            }
           });
         }
       } catch (error: unknown) {
@@ -327,6 +345,22 @@ export default function ChatWindow() {
     },
     [isLoading, activeSessionId, messages, selectedModel]
   );
+
+  const handleEditMessage = useCallback(async (id: string, newContent: string) => {
+    const msgIndex = messages.findIndex((m) => m.id === id);
+    if (msgIndex === -1) return;
+
+    if (activeSessionId) {
+      await fetch("/api/messages/truncate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: activeSessionId, message_id: id })
+      });
+    }
+
+    setMessages(messages.slice(0, msgIndex));
+    await sendMessage(newContent);
+  }, [messages, activeSessionId, sendMessage]);
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -356,6 +390,7 @@ export default function ChatWindow() {
         onSelectSession={(id) => { setSidebarOpen(false); handleSelectSession(id); }}
         onNewSession={handleNewSession}
         onDeleteSession={handleDeleteSession}
+        onClearAllSessions={handleClearAllSessions}
         selectedModel={selectedModel}
         onModelChange={setSelectedModel}
         mobileOpen={sidebarOpen}
@@ -438,6 +473,7 @@ export default function ChatWindow() {
                   message={msg}
                   isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
                   onDelete={handleDeleteMessage}
+                  onEdit={handleEditMessage}
                 />
               ))
             )}

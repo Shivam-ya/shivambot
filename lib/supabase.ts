@@ -86,6 +86,15 @@ export async function deleteSession(id: string, userId: string): Promise<void> {
   await supabase.from("chat_sessions").delete().eq("id", id);
 }
 
+export async function deleteAllSessions(userId: string): Promise<void> {
+  const { data } = await supabase.from("chat_sessions").select("id").eq("user_id", userId);
+  if (!data || data.length === 0) return;
+  const sessionIds = data.map(s => s.id);
+  
+  await supabase.from("chat_messages").delete().in("session_id", sessionIds);
+  await supabase.from("chat_sessions").delete().in("id", sessionIds);
+}
+
 export async function touchSession(id: string): Promise<void> {
   await supabase.from("chat_sessions").update({ updated_at: new Date().toISOString() }).eq("id", id);
 }

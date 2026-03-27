@@ -29,6 +29,7 @@ interface SidebarProps {
   onSelectSession: (id: string) => void;
   onNewSession: () => void;
   onDeleteSession: (id: string) => void;
+  onClearAllSessions: () => void;
   selectedModel: string;
   onModelChange: (model: string) => void;
   mobileOpen: boolean;
@@ -41,6 +42,7 @@ export default function Sidebar({
   onSelectSession,
   onNewSession,
   onDeleteSession,
+  onClearAllSessions,
   selectedModel,
   onModelChange,
   mobileOpen,
@@ -93,16 +95,26 @@ export default function Sidebar({
         </select>
       </div>
 
-      {/* New chat button */}
-      <div className="px-3 py-3">
+      {/* Action buttons */}
+      <div className="px-3 py-3 flex gap-2">
         <button
           id="new-chat-btn"
           onClick={onNewSession}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 hover:border-cyan-400/40 text-cyan-400 text-sm font-semibold transition-all group"
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 hover:border-cyan-400/40 text-cyan-400 text-sm font-semibold transition-all group"
         >
           <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
           New Chat
         </button>
+        {sessions.length > 0 && (
+          <button
+            onClick={onClearAllSessions}
+            className="flex-shrink-0 px-3 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-400/40 text-red-500 hover:text-red-400 text-sm font-semibold transition-all group"
+            title="Clear all history"
+            aria-label="Clear all history"
+          >
+            <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          </button>
+        )}
       </div>
 
       {/* Sessions list */}

@@ -10,6 +10,7 @@ import {
   Trash2,
   User,
   Bot,
+  Pencil,
 } from "lucide-react";
 import ThinkingBlock from "./ThinkingBlock";
 import AudioControls from "./AudioControls";
@@ -33,6 +34,7 @@ interface MessageBubbleProps {
   message: Message;
   isStreaming?: boolean;
   onDelete?: (id: string) => void;
+  onEdit?: (id: string, newContent: string) => void;
 }
 
 function parseContent(raw: string): { thinking: string; text: string } {
@@ -87,9 +89,12 @@ function CodeCopyButton({ text }: { text: string }) {
   );
 }
 
-export default function MessageBubble({ message, isStreaming = false, onDelete }: MessageBubbleProps) {
+export default function MessageBubble({ message, isStreaming = false, onDelete, onEdit }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  
   const { thinking, text } = parseContent(message.content);
+  const [editContent, setEditContent] = useState(text || message.content);
   const isUser = message.role === "user";
 
   const copyToClipboard = useCallback(async () => {
@@ -146,7 +151,38 @@ export default function MessageBubble({ message, isStreaming = false, onDelete }
           }`}
         >
           {isUser ? (
-            <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{text || message.content}</p>
+            isEditing ? (
+              <div className="flex flex-col gap-2 w-full min-w-[200px] sm:min-w-[300px]">
+                <textarea
+                  className="w-full bg-white/10 text-white rounded-lg p-2 text-sm resize-none outline-none focus:ring-1 focus:ring-cyan-500 font-sans"
+                  rows={3}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex justify-end gap-2 mt-1">
+                  <button 
+                    onClick={() => { setEditContent(text || message.content); setIsEditing(false); }}
+                    className="px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-xs text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => { 
+                      if (editContent.trim() !== (text || message.content).trim()) {
+                        onEdit?.(message.id, editContent);
+                      }
+                      setIsEditing(false); 
+                    }}
+                    className="px-3 py-1.5 rounded-md bg-cyan-500 hover:bg-cyan-600 text-xs text-white transition-colors"
+                  >
+                    Save & Submit
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">{text || message.content}</p>
+            )
           ) : (
             <div className="prose-ag text-slate-200 text-sm transition-all duration-300 ease-out min-w-0 break-words">
               <ReactMarkdown
@@ -244,8 +280,15 @@ export default function MessageBubble({ message, isStreaming = false, onDelete }
             </div>
           </div>
         )}
-        {isUser && !isStreaming && (
+        {isUser && !isStreaming && !isEditing && (
           <div className="flex items-center gap-1 mt-1.5 mr-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => setIsEditing(true)}
+              title="Edit"
+              className="w-6 h-6 rounded-md glass-card flex items-center justify-center text-slate-500 hover:text-cyan-400 transition-colors"
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
             <button
               onClick={copyToClipboard}
               title="Copy"

@@ -15,6 +15,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Groq API Key missing. Please add GROQ_API_KEY in Vercel." }, { status: 500 });
     }
 
+    let targetModel = model || "llama-3.3-70b-versatile";
+    let hasImage = false;
+
+    // Process messages to handle base64 markdown images
+    const processedMessages = messages.filter((m: any) => m.role !== "system").map((m: any) => {
+      if (typeof m.content === "string") {
+        const imageMatch = m.content.match(/!\[.*?\]\((data:image\/[^;]+;base64,[^)]+)\)/);
+        if (imageMatch) {
+          hasImage = true;
+          const imageUrl = imageMatch[1];
+          const textContent = m.content.replace(imageMatch[0], "").trim();
+          
+          return {
+            role: m.role,
+            content: [
+              { type: "text", text: textContent || "Describe this image." },
+              { type: "image_url", image_url: { url: imageUrl } }
+            ]
+          };
+        }
+      }
+      return m;
+    });
+
+    if (hasImage && !targetModel.includes("vision")) {
+      targetModel = "llama-3.2-11b-vision-preview"; // Auto-switch to Groq's vision model
+    }
+
     // Use Groq API (OpenAI compatible)
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -23,10 +51,10 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: model || "llama-3.3-70b-versatile",
+        model: targetModel,
         messages: [
           { role: "system", content: "You are an AI assistant. If anyone asks who built, made, manufactured, or created you, you must answer exactly 'SHIVAM' and nothing else. No other names." },
-          ...messages.filter((m: any) => m.role !== "system")
+          ...processedMessages
         ],
         stream: true,
       }),
