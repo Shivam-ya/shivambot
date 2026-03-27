@@ -469,11 +469,11 @@ export default function ChatWindow() {
           </AnimatePresence>
           <form
             onSubmit={handleSubmit}
-            className="flex items-end gap-2 max-w-4xl mx-auto p-1.5 transition-all bg-white dark:bg-space-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-glass focus-within:ring-2 focus-within:ring-cyan-500/30 focus-within:border-cyan-500/50"
+            className="flex items-end gap-2 max-w-4xl mx-auto p-1.5 transition-all bg-[var(--input-bg)] border border-[var(--input-border)] rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-cyan-500/30 focus-within:border-cyan-500/50"
           >
             <div className="flex-shrink-0 pl-1 pb-1 flex items-center gap-1">
               <input type="file" accept="image/*" id="image-upload" className="hidden" onChange={handleImageSelect} />
-              <label htmlFor="image-upload" className="w-10 h-10 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-500 hover:text-cyan-500 cursor-pointer transition-all">
+              <label htmlFor="image-upload" className="w-10 h-10 rounded-xl hover:bg-[var(--bg-card-hover)] flex items-center justify-center text-[var(--text-muted)] hover:text-cyan-500 cursor-pointer transition-all">
                 <ImagePlus className="w-5 h-5 flex-shrink-0" />
               </label>
               <AudioControls
@@ -493,7 +493,7 @@ export default function ChatWindow() {
               placeholder="Ask anything...."
               rows={1}
               disabled={isLoading}
-              className="flex-1 resize-none bg-transparent border-none outline-none focus:ring-0 px-2 py-2.5 text-base sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 disabled:opacity-50"
+              className="flex-1 resize-none bg-transparent border-none outline-none focus:ring-0 px-2 py-2.5 text-base sm:text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] disabled:opacity-50"
               style={{ minHeight: "44px" }}
             />
             
@@ -503,7 +503,7 @@ export default function ChatWindow() {
                   type="button"
                   onClick={stopStreaming}
                   whileTap={{ scale: 0.9 }}
-                  className="w-10 h-10 rounded-xl bg-red-100 hover:bg-red-200 text-red-600 dark:bg-red-500/20 dark:hover:bg-red-500/30 dark:border dark:border-red-500/30 dark:text-red-400 transition-all flex items-center justify-center m-auto"
+                  className="w-10 h-10 rounded-xl bg-[var(--bg-card)] border border-red-500/30 text-red-500 hover:bg-red-500/20 transition-all flex items-center justify-center m-auto"
                   aria-label="Stop generation"
                 >
                   <StopCircle className="w-5 h-5 flex-shrink-0" />
