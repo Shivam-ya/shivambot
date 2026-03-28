@@ -51,8 +51,8 @@ export async function POST(req: Request) {
       return m;
     });
 
-    if (hasImage && !targetModel.includes("vision")) {
-      targetModel = "llama-3.2-11b-vision-preview"; // Auto-switch to Groq's vision model
+    if (hasImage && !targetModel.includes("scout")) {
+      targetModel = "meta-llama/llama-4-scout-17b-16e-instruct"; // Auto-switch to Groq's new vision model
       apiUrl = "https://api.groq.com/openai/v1/chat/completions";
       apiAuthKey = process.env.GROQ_API_KEY;
     }
