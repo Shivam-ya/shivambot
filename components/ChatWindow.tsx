@@ -17,7 +17,8 @@ import MessageBubble, { type Message } from "./MessageBubble";
 import Sidebar from "./Sidebar";
 import AudioControls from "./AudioControls";
 import { exportToDocx } from "@/lib/export-utils";
-import type { ChatSession } from "@/lib/db";
+import type { ChatSession } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 // ── API helpers ────────────────────────────────────────────────────────────
 
@@ -100,6 +101,45 @@ export default function ChatWindow() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
 
+  // Human Chat State
+  const [chatMode, setChatMode] = useState<"ai" | "human">("ai");
+  const [deviceId, setDeviceId] = useState("");
+  const [humanMessages, setHumanMessages] = useState<Message[]>([]);
+  const [humanConversationId, setHumanConversationId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let id = localStorage.getItem("device_id");
+    if (!id) {
+      id = "device_" + Math.random().toString(36).substring(2, 9);
+      localStorage.setItem("device_id", id);
+    }
+    setDeviceId(id);
+  }, []);
+
+  // Fetch human chat messages
+  useEffect(() => {
+    if (chatMode !== "human") return;
+    fetch("/api/human-chat")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.conversation?.id) {
+          setHumanConversationId(data.conversation.id);
+        }
+        if (data.messages) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setHumanMessages(data.messages.map((m: any) => ({
+            id: m.id,
+            role: "user",
+            content: m.message,
+            createdAt: new Date(m.created_at),
+            isHumanMode: true,
+            senderId: m.sender_id,
+          })));
+        }
+      })
+      .catch(console.error);
+  }, [chatMode]);
+
   // Set random placeholder client-side only (avoids SSR hydration mismatch)
   useEffect(() => {
     setPlaceholder(WELCOME_MESSAGES[Math.floor(Math.random() * WELCOME_MESSAGES.length)]);
@@ -151,6 +191,78 @@ export default function ChatWindow() {
     ta.style.height = "auto";
     ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
   }, []);
+  // Real-time synchronization for AI chat multi-device support
+  useEffect(() => {
+    if (!activeSessionId || !isOnline || chatMode === "human") return;
+
+    const channel = supabase
+      .channel(`realtime-ai-${activeSessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `session_id=eq.${activeSessionId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new;
+          setMessages((prev) => {
+            // Prevent duplicating messages we just sent locally
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            
+            return [...prev, {
+              id: newMsg.id,
+              role: newMsg.role as "user" | "assistant",
+              content: newMsg.content,
+              model: newMsg.model,
+              createdAt: new Date(newMsg.created_at || Date.now()),
+            }];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeSessionId, isOnline, chatMode]);
+
+  // Real-time synchronization for Human chat multi-device support
+  useEffect(() => {
+    if (chatMode !== "human" || !humanConversationId || !isOnline) return;
+
+    const channel = supabase
+      .channel(`realtime-human-${humanConversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_messages',
+          filter: `conversation_id=eq.${humanConversationId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new;
+          setHumanMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, {
+              id: newMsg.id,
+              role: "user",
+              content: newMsg.message,
+              createdAt: new Date(newMsg.created_at || Date.now()),
+              isHumanMode: true,
+              senderId: newMsg.sender_id,
+            }];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [chatMode, humanConversationId, isOnline]);
 
   // Switch session → load its messages from SQLite
   const handleSelectSession = useCallback(async (id: string) => {
@@ -222,13 +334,51 @@ export default function ChatWindow() {
   const sendMessage = useCallback(
     async (content: string) => {
       const finalContent = content.trim();
+      if (!finalContent && !selectedImage) return;
+
+      if (chatMode === "human") {
+        if (!humanConversationId) {
+          alert("Human Chat tables are missing! Please run the SQL command provided in the walkthrough in your Supabase Dashboard to enable Human Chat.");
+          return;
+        }
+        const msg: Message = {
+          id: mkId(),
+          role: "user",
+          content: finalContent,
+          createdAt: new Date(),
+          isHumanMode: true,
+          senderId: deviceId,
+        };
+        
+        setHumanMessages(prev => [...prev, msg]);
+        setInput("");
+        if (textareaRef.current) textareaRef.current.style.height = "auto";
+        
+        fetch("/api/human-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: humanConversationId,
+            sender_id: deviceId,
+            message: finalContent,
+          })
+        }).then(res => res.json()).then(saved => {
+          if (saved.id) {
+            setHumanMessages((current) => current.map((m) => 
+              m.id === msg.id ? { ...m, id: saved.id, createdAt: new Date(saved.created_at) } : m
+            ));
+          }
+        });
+        return;
+      }
+
       const lowerContent = finalContent.toLowerCase();
 
-      const triggers = ["/image", "generate image", "create image", "image"];
-      const matchedTrigger = triggers.find(t => lowerContent.startsWith(t));
+      const imageRegex = /^(?:\/image|image|generate(?:\s+(?:an?|the))?\s+image|create(?:\s+(?:an?|the))?\s+image)/i;
+      const match = lowerContent.match(imageRegex);
 
-      if (matchedTrigger) {
-        let imagePrompt = finalContent.substring(matchedTrigger.length).trim();
+      if (match) {
+        let imagePrompt = finalContent.substring(match[0].length).trim();
         if (imagePrompt.toLowerCase().startsWith("of ")) {
           imagePrompt = imagePrompt.substring(3).trim();
         }
@@ -452,7 +602,7 @@ export default function ChatWindow() {
         setIsLoading(false);
       }
     },
-    [isLoading, activeSessionId, messages, selectedModel]
+    [isLoading, activeSessionId, messages, selectedModel, chatMode, humanConversationId, deviceId, humanMessages]
   );
 
   const handleEditMessage = useCallback(async (id: string, newContent: string) => {
@@ -504,6 +654,8 @@ export default function ChatWindow() {
         onModelChange={setSelectedModel}
         mobileOpen={sidebarOpen}
         onMobileClose={() => setSidebarOpen(false)}
+        chatMode={chatMode}
+        onChatModeChange={setChatMode}
       />
 
       <div className="relative flex flex-col flex-1 min-w-0 h-full">
@@ -525,10 +677,15 @@ export default function ChatWindow() {
               title={isOnline ? "Server Online" : "Server Offline"}
             />
             <h1 className="text-sm font-semibold text-white truncate">
-              {Array.isArray(sessions) ? sessions.find((s) => s.id === activeSessionId)?.title ?? "New Conversation" : "New Conversation"}
+              {chatMode === "human" 
+                ? "Secure Human Chat (Multi-Device)"
+                : Array.isArray(sessions) 
+                  ? sessions.find((s) => s.id === activeSessionId)?.title ?? "New Conversation" 
+                  : "New Conversation"
+              }
             </h1>
           </div>
-          {messages.length > 0 && (
+          {chatMode === "ai" && messages.length > 0 && (
             <button
               onClick={handleExportThread}
               title="Export to Word"
@@ -543,7 +700,7 @@ export default function ChatWindow() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <AnimatePresence>
-            {messages.length === 0 ? (
+            {(chatMode === "human" ? humanMessages : messages).length === 0 ? (
               <motion.div
                 key="empty"
                 initial={{ opacity: 0, y: 20 }}
@@ -555,34 +712,38 @@ export default function ChatWindow() {
                   <Sparkles className="w-7 h-7 text-cyan-400" />
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">
-                  SHIVAM<span className="gradient-text"> Chatbot</span>
+                  {chatMode === "human" ? "Human Chat Active" : <>SHIVAM<span className="gradient-text"> Chatbot</span></>}
                 </h2>
-                <p className="text-slate-500 text-sm max-w-xs">{placeholder}</p>
-                <div className="mt-8 flex flex-wrap gap-2 justify-center max-w-sm">
-                  {[
-                    "Explain quantum computing",
-                    "Write a Python web scraper",
-                    "Debug my React component",
-                    "Summarize a research paper",
-                  ].map((chip) => (
-                    <button
-                      key={chip}
-                      onClick={() => sendMessage(chip)}
-                      className="px-3 py-1.5 rounded-full glass-card border border-white/08 hover:border-cyan-400/30 text-slate-400 hover:text-cyan-400 text-xs transition-all"
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
+                <p className="text-slate-500 text-sm max-w-xs">{chatMode === "human" ? "Messages sent here will instantly appear on your other devices!" : placeholder}</p>
+                
+                {chatMode === "ai" && (
+                  <div className="mt-8 flex flex-wrap gap-2 justify-center max-w-sm">
+                    {[
+                      "Explain quantum computing",
+                      "Write a Python web scraper",
+                      "Debug my React component",
+                      "Summarize a research paper",
+                    ].map((chip) => (
+                      <button
+                        key={chip}
+                        onClick={() => sendMessage(chip)}
+                        className="px-3 py-1.5 rounded-full glass-card border border-white/08 hover:border-cyan-400/30 text-slate-400 hover:text-cyan-400 text-xs transition-all"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             ) : (
-              messages.map((msg, i) => (
+              (chatMode === "human" ? humanMessages : messages).map((msg, i, arr) => (
                 <MessageBubble
                   key={msg.id}
                   message={msg}
-                  isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
-                  onDelete={handleDeleteMessage}
-                  onEdit={handleEditMessage}
+                  isStreaming={chatMode === "ai" && isStreaming && i === arr.length - 1 && msg.role === "assistant"}
+                  onDelete={chatMode === "ai" ? handleDeleteMessage : undefined}
+                  onEdit={chatMode === "ai" ? handleEditMessage : undefined}
+                  myDeviceId={deviceId}
                 />
               ))
             )}

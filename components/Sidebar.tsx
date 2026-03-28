@@ -34,6 +34,8 @@ interface SidebarProps {
   onModelChange: (model: string) => void;
   mobileOpen: boolean;
   onMobileClose: () => void;
+  chatMode: "ai" | "human";
+  onChatModeChange: (mode: "ai" | "human") => void;
 }
 
 export default function Sidebar({
@@ -47,6 +49,8 @@ export default function Sidebar({
   onModelChange,
   mobileOpen,
   onMobileClose,
+  chatMode,
+  onChatModeChange,
 }: SidebarProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const { data: session } = useSession();
@@ -76,89 +80,125 @@ export default function Sidebar({
 
 
 
-      {/* Model selector */}
-      <div className="px-3 py-3 border-b border-white/[0.06]">
-        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1.5 block">
-          Model
-        </label>
-        <select
-          id="model-select"
-          value={selectedModel}
-          onChange={(e) => onModelChange(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg text-xs text-slate-200 bg-white/5 border border-white/08 focus:outline-none focus:border-cyan-400/40 transition-colors truncate"
+      {/* Mode Toggle */}
+      <div className="px-3 py-3 border-b border-white/[0.06] flex gap-2">
+        <button
+          onClick={() => onChatModeChange("ai")}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+            chatMode === "ai"
+              ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+              : "bg-white/5 text-slate-400 hover:bg-white/10 border border-transparent"
+          }`}
         >
-          {MODELS.map((m) => (
-            <option key={m.id} value={m.id} className="bg-space-900">
-              {m.label}
-            </option>
-          ))}
-        </select>
+          🤖 AI Chat
+        </button>
+        <button
+          onClick={() => onChatModeChange("human")}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+            chatMode === "human"
+              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+              : "bg-white/5 text-slate-400 hover:bg-white/10 border border-transparent"
+          }`}
+        >
+          💬 Human Chat
+        </button>
       </div>
 
-      {/* Action buttons */}
-      <div className="px-3 py-3 flex gap-2">
-        <button
-          id="new-chat-btn"
-          onClick={onNewSession}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 hover:border-cyan-400/40 text-cyan-400 text-sm font-semibold transition-all group"
-        >
-          <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
-          New Chat
-        </button>
-        {sessions.length > 0 && (
-          <button
-            onClick={onClearAllSessions}
-            className="flex-shrink-0 px-3 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-400/40 text-red-500 hover:text-red-400 text-sm font-semibold transition-all group"
-            title="Clear all history"
-            aria-label="Clear all history"
-          >
-            <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-          </button>
-        )}
-      </div>
+      {/* Model selector - Hide in human mode */}
+      {chatMode === "ai" && (
+        <>
+          <div className="px-3 py-3 border-b border-white/[0.06]">
+            <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-1.5 block">
+              Model
+            </label>
+            <select
+              id="model-select"
+              value={selectedModel}
+              onChange={(e) => onModelChange(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg text-xs text-slate-200 bg-white/5 border border-white/08 focus:outline-none focus:border-cyan-400/40 transition-colors truncate"
+            >
+              {MODELS.map((m) => (
+                <option key={m.id} value={m.id} className="bg-space-900">
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Action buttons */}
+          <div className="px-3 py-3 flex gap-2">
+            <button
+              id="new-chat-btn"
+              onClick={onNewSession}
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 hover:border-cyan-400/40 text-cyan-400 text-sm font-semibold transition-all group"
+            >
+              <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
+              New Chat
+            </button>
+            {sessions.length > 0 && (
+              <button
+                onClick={onClearAllSessions}
+                className="flex-shrink-0 px-3 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-400/40 text-red-500 hover:text-red-400 text-sm font-semibold transition-all group"
+                title="Clear all history"
+                aria-label="Clear all history"
+              >
+                <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              </button>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Sessions list */}
-      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
-        {sessions.length === 0 ? (
-          <div className="text-center py-8 text-slate-600 text-xs">
-            No conversations yet
-          </div>
-        ) : (
-          sessions.map((session) => (
-            <motion.div
-              key={session.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className={`group relative flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
-                activeSession === session.id
-                  ? "bg-white/08 border border-cyan-400/20 text-white"
-                  : "hover:bg-white/05 text-slate-400 hover:text-slate-200 border border-transparent"
-              }`}
-              onMouseEnter={() => setHoveredId(session.id)}
-              onMouseLeave={() => setHoveredId(null)}
-              onClick={() => { onSelectSession(session.id); onMobileClose(); }}
-            >
-              <MessageSquare className={`w-3.5 h-3.5 flex-shrink-0 ${activeSession === session.id ? "text-cyan-400" : ""}`} />
-              <span className="text-xs truncate flex-1">{session.title}</span>
+      {chatMode === "ai" ? (
+        <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
+          {sessions.length === 0 ? (
+            <div className="text-center py-8 text-slate-600 text-xs">
+              No conversations yet
+            </div>
+          ) : (
+            sessions.map((session) => (
+              <motion.div
+                key={session.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className={`group relative flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
+                  activeSession === session.id
+                    ? "bg-white/08 border border-cyan-400/20 text-white"
+                    : "hover:bg-white/05 text-slate-400 hover:text-slate-200 border border-transparent"
+                }`}
+                onMouseEnter={() => setHoveredId(session.id)}
+                onMouseLeave={() => setHoveredId(null)}
+                onClick={() => { onSelectSession(session.id); onMobileClose(); }}
+              >
+                <MessageSquare className={`w-3.5 h-3.5 flex-shrink-0 ${activeSession === session.id ? "text-cyan-400" : ""}`} />
+                <span className="text-xs truncate flex-1">{session.title}</span>
 
-              <AnimatePresence>
-                {(hoveredId === session.id || activeSession === session.id) && (
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    onClick={(e) => { e.stopPropagation(); onDeleteSession(session.id); }}
-                    className="w-5 h-5 flex-shrink-0 rounded flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                    aria-label="Delete session"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </motion.button>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          ))
-        )}
-      </div>
+                <AnimatePresence>
+                  {(hoveredId === session.id || activeSession === session.id) && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      onClick={(e) => { e.stopPropagation(); onDeleteSession(session.id); }}
+                      className="w-5 h-5 flex-shrink-0 rounded flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                      aria-label="Delete session"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ))
+          )}
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto px-3 py-6 space-y-4">
+          <div className="text-center py-8 text-slate-500 text-xs max-w-[180px] mx-auto opacity-70">
+            You are in Human Chat mode. Open this interface on another device with the same account to talk securely directly.
+          </div>
+        </div>
+      )}
 
       {/* Footer / User Profile */}
       <div className="p-3 border-t border-white/[0.06] flex items-center justify-between mt-auto">

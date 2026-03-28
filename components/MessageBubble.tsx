@@ -31,6 +31,8 @@ export interface Message {
   createdAt?: Date;
   imageUrl?: string;
   isLoadingImage?: boolean;
+  isHumanMode?: boolean;
+  senderId?: string;
 }
 
 interface MessageBubbleProps {
@@ -38,6 +40,7 @@ interface MessageBubbleProps {
   isStreaming?: boolean;
   onDelete?: (id: string) => void;
   onEdit?: (id: string, newContent: string) => void;
+  myDeviceId?: string;
 }
 
 function parseContent(raw: string): { thinking: string; text: string } {
@@ -96,13 +99,17 @@ function CodeCopyButton({ text }: { text: string }) {
   );
 }
 
-export default function MessageBubble({ message, isStreaming = false, onDelete, onEdit }: MessageBubbleProps) {
+export default function MessageBubble({ message, isStreaming = false, onDelete, onEdit, myDeviceId }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
   const { thinking, text } = parseContent(message.content);
   const [editContent, setEditContent] = useState(text || message.content);
-  const isUser = message.role === "user";
+  
+  // Align right if it's the normal user, or if it's our own device in human mode.
+  const isUser = message.isHumanMode 
+    ? message.senderId === myDeviceId 
+    : message.role === "user";
 
   const copyToClipboard = useCallback(async () => {
     if (!navigator?.clipboard?.writeText) {
@@ -133,10 +140,12 @@ export default function MessageBubble({ message, isStreaming = false, onDelete, 
         className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
           isUser
             ? "bg-gradient-to-br from-cyan-500 to-blue-600"
-            : "bg-gradient-to-br from-purple-600 to-pink-600"
+            : message.isHumanMode
+              ? "bg-gradient-to-br from-emerald-500 to-teal-500" // Different color for human partner
+              : "bg-gradient-to-br from-purple-600 to-pink-600"
         }`}
       >
-        {isUser ? (
+        {isUser || message.isHumanMode ? (
           <User className="w-4 h-4 text-white" />
         ) : (
           <Bot className="w-4 h-4 text-white" />
@@ -276,7 +285,7 @@ export default function MessageBubble({ message, isStreaming = false, onDelete, 
         </div>
 
         {/* Model tag + actions */}
-        {!isUser && !isStreaming && (
+        {!isUser && !isStreaming && !message.isHumanMode && (
           <div className="flex items-center gap-2 mt-1.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {message.model && (
               <span className="text-[10px] text-slate-600 truncate max-w-[120px]">

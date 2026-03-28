@@ -30,6 +30,20 @@ export interface ChatMessage {
   created_at: string;
 }
 
+export interface HumanConversation {
+  id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface HumanMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+}
+
 // ── Database helpers ────────────────────────────────────────────────────────
 
 // -- Users --
@@ -126,4 +140,51 @@ export async function saveMessage(msg: Omit<ChatMessage, "id" | "created_at">): 
 
 export async function deleteMessage(id: string): Promise<void> {
   await supabase.from("chat_messages").delete().eq("id", id);
+}
+
+// -- Human Chat --
+export async function getHumanConversation(userId: string): Promise<HumanConversation | null> {
+  // Try to fetch existing
+  const { data, error } = await supabase
+    .from("conversations")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
+
+  if (data) return data;
+
+  // Create new if none exists
+  const { data: newData, error: newError } = await supabase
+    .from("conversations")
+    .insert({ user_id: userId })
+    .select()
+    .single();
+    
+  if (newError) {
+    console.error("getHumanConversation:", newError);
+    throw new Error(newError.message || String(newError));
+  }
+  return newData;
+}
+
+export async function getHumanMessages(conversationId: string): Promise<HumanMessage[]> {
+  const { data, error } = await supabase
+    .from("user_messages")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true });
+    
+  if (error) { console.error("getHumanMessages:", error); return []; }
+  return data ?? [];
+}
+
+export async function saveHumanMessage(msg: Omit<HumanMessage, "id" | "created_at">): Promise<HumanMessage | null> {
+  const { data, error } = await supabase
+    .from("user_messages")
+    .insert(msg)
+    .select()
+    .single();
+    
+  if (error) { console.error("saveHumanMessage:", error); return null; }
+  return data;
 }
