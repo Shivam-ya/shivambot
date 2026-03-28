@@ -272,9 +272,16 @@ export default function ChatWindow() {
           });
 
           if (!response.ok) {
+            let errorMsg = "Unable to generate image";
+            try {
+              const errData = await response.json();
+              if (errData.error) errorMsg = `Unable to generate image: ${errData.error}`;
+            } catch (e) {
+              // Ignore json parsing error
+            }
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === assistantId ? { ...m, isLoadingImage: false, content: "Unable to generate image" } : m
+                m.id === assistantId ? { ...m, isLoadingImage: false, content: errorMsg } : m
               )
             );
             setIsLoading(false);
@@ -375,7 +382,14 @@ export default function ChatWindow() {
           }),
         });
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+          let errorText = `HTTP ${response.status}`;
+          try {
+            const errData = await response.json();
+            if (errData.error) errorText = errData.error;
+          } catch(e) {}
+          throw new Error(errorText);
+        }
 
         setIsStreaming(true);
         setIsLoading(false);
@@ -426,7 +440,7 @@ export default function ChatWindow() {
         }
       } catch (error: unknown) {
         if ((error as Error).name !== "AbortError") {
-          const errMsg = "⚠️ Something went wrong. Please check your API key and try again.";
+          const errMsg = `⚠️ Something went wrong: ${(error as Error).message || "Please check your API key and try again."}`;
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantId ? { ...m, content: errMsg } : m
